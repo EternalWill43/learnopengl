@@ -2,9 +2,12 @@
 #include <gl/GL.h>
 #include <glfw3.h>
 #include <chrono>
+#include <fstream>
 #include <iostream>
+#include <sstream>
+#include <string>
 
-#include "ogl.c"
+#include "ogl.cpp"
 
 union Vec3
 {
@@ -95,7 +98,7 @@ int main()
   glCompileShader(fragmentShader);
 
   unsigned int fragmentShader2 = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragmentShader2, 1, &fragmentShaderSource2, NULL);
+  glShaderSource(fragmentShader2, 1, &fragmentShaderSource, NULL);
   glCompileShader(fragmentShader2);
 
   unsigned int shaderProgram = glCreateProgram();

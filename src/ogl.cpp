@@ -4,29 +4,25 @@
 #define GL_FRAGMENT_SHADER 0x8B30
 #define GL_ELEMENT_ARRAY_BUFFER 0x8893
 
-const char* vertexShaderSource =
-    "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "}\0";
+std::string readShaderSource(const std::string& filePath)
+{
+  std::ifstream file(filePath);
+  if (!file.is_open())
+  {
+    std::cout << "DIDN'T FIND FILE\n";
+    return "";
+  }
 
-const char* fragmentShaderSource =
-    "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "	FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    "}\0";
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  file.close();
+  return buffer.str();
+}
 
-const char* fragmentShaderSource2 =
-    "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "	FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
-    "}\0";
+std::string vertexShaderSourceStr = readShaderSource("./src/shaders/vert.glsl");
+const char* vertexShaderSource = vertexShaderSourceStr.c_str();
+std::string fragShaderSourceStr = readShaderSource("./src/shaders/frag.glsl");
+const char* fragmentShaderSource = fragShaderSourceStr.c_str();
 
 typedef char GLchar;
 typedef ptrdiff_t GLsizeiptr;
