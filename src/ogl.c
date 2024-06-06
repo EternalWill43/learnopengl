@@ -20,6 +20,14 @@ const char* fragmentShaderSource =
     "	FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
     "}\0";
 
+const char* fragmentShaderSource2 =
+    "#version 330 core\n"
+    "out vec4 FragColor;\n"
+    "void main()\n"
+    "{\n"
+    "	FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
+    "}\0";
+
 typedef char GLchar;
 typedef ptrdiff_t GLsizeiptr;
 typedef ptrdiff_t GLintptr;
@@ -40,8 +48,10 @@ typedef void (*GL_ENABLEVERTEXATTRIBARRAY)(GLuint);
 typedef void (*GL_GENVERTEXARRAYS)(GLsizei, GLuint*);
 typedef void (*GL_BINDVERTEXARRAY)(GLuint);
 typedef void (*GL_BUFFERSUBDATA)(GLenum, GLintptr, GLsizeiptr, const void* data);
+typedef void (*GL_DELETEVERTEXARRAYS)(GLsizei, const GLuint*);
+typedef void (*GL_DELETEBUFFERS)(GLsizei, const GLuint*);
+typedef void (*GL_DELETEPROGRAM)(GLuint);
 
-GL_BUFFERSUBDATA glBufferSubData = NULL;
 GL_GENBUFFERS glGenBuffers = NULL;
 GL_BINDBUFFER glBindBuffer = NULL;
 GL_BUFFERDATA glBufferData = NULL;
@@ -57,6 +67,10 @@ GL_VERTEXATTRIBPOINTER glVertexAttribPointer = NULL;
 GL_ENABLEVERTEXATTRIBARRAY glEnableVertexAttribArray = NULL;
 GL_GENVERTEXARRAYS glGenVertexArrays = NULL;
 GL_BINDVERTEXARRAY glBindVertexArray = NULL;
+GL_BUFFERSUBDATA glBufferSubData = NULL;
+GL_DELETEVERTEXARRAYS glDeleteVertexArrays = NULL;
+GL_DELETEBUFFERS glDeleteBuffers = NULL;
+GL_DELETEPROGRAM glDeleteProgram = NULL;
 
 void ValidateGLFunctions()
 {
@@ -156,4 +170,7 @@ void InitializeOpenGlFunctions()
   glGenVertexArrays = (GL_GENVERTEXARRAYS)wglGetProcAddress("glGenVertexArrays");
   glBindVertexArray = (GL_BINDVERTEXARRAY)wglGetProcAddress("glBindVertexArray");
   glBufferSubData = (GL_BUFFERSUBDATA)wglGetProcAddress("glBufferSubData");
+  glDeleteVertexArrays = (GL_DELETEVERTEXARRAYS)wglGetProcAddress("glDeleteVertexArrays");
+  glDeleteBuffers = (GL_DELETEBUFFERS)wglGetProcAddress("glDeleteBuffers");
+  glDeleteProgram = (GL_DELETEPROGRAM)wglGetProcAddress("glDeleteProgram");
 }

@@ -94,11 +94,21 @@ int main()
   glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
   glCompileShader(fragmentShader);
 
+  unsigned int fragmentShader2 = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(fragmentShader2, 1, &fragmentShaderSource2, NULL);
+  glCompileShader(fragmentShader2);
+
   unsigned int shaderProgram = glCreateProgram();
   glAttachShader(shaderProgram, vertexShader);
   glAttachShader(shaderProgram, fragmentShader);
   glLinkProgram(shaderProgram);
 
+  unsigned int shaderProgram2 = glCreateProgram();
+  glAttachShader(shaderProgram2, vertexShader);
+  glAttachShader(shaderProgram2, fragmentShader2);
+  glLinkProgram(shaderProgram2);
+
+  glDeleteShader(fragmentShader2);
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);
 
@@ -132,12 +142,16 @@ int main()
     glBindVertexArray(VAOs[0]);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
+    glUseProgram(shaderProgram2);
     glBindVertexArray(VAOs[1]);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
+  glDeleteVertexArrays(2, VAOs);
+  glDeleteBuffers(2, VBOs);
+  glDeleteProgram(shaderProgram);
 
   glfwTerminate();
 
