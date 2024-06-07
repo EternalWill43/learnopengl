@@ -20,9 +20,9 @@ std::string readShaderSource(const std::string& filePath)
 }
 
 std::string vertexShaderSourceStr = readShaderSource("./src/shaders/vert.glsl");
-const char* vertexShaderSource = vertexShaderSourceStr.c_str();
+// const char* vertexShaderSource = vertexShaderSourceStr.c_str();
 std::string fragShaderSourceStr = readShaderSource("./src/shaders/frag.glsl");
-const char* fragmentShaderSource = fragShaderSourceStr.c_str();
+// const char* fragmentShaderSource = fragShaderSourceStr.c_str();
 
 typedef char GLchar;
 typedef ptrdiff_t GLsizeiptr;
@@ -47,6 +47,8 @@ typedef void (*GL_BUFFERSUBDATA)(GLenum, GLintptr, GLsizeiptr, const void* data)
 typedef void (*GL_DELETEVERTEXARRAYS)(GLsizei, const GLuint*);
 typedef void (*GL_DELETEBUFFERS)(GLsizei, const GLuint*);
 typedef void (*GL_DELETEPROGRAM)(GLuint);
+typedef void (*GL_UNIFORM4F)(GLint, GLfloat, GLfloat, GLfloat, GLfloat);
+typedef GLint (*GL_GETUNIFORMLOCATION)(GLuint, const GLchar*);
 
 GL_GENBUFFERS glGenBuffers = NULL;
 GL_BINDBUFFER glBindBuffer = NULL;
@@ -67,6 +69,8 @@ GL_BUFFERSUBDATA glBufferSubData = NULL;
 GL_DELETEVERTEXARRAYS glDeleteVertexArrays = NULL;
 GL_DELETEBUFFERS glDeleteBuffers = NULL;
 GL_DELETEPROGRAM glDeleteProgram = NULL;
+GL_UNIFORM4F glUniform4f = NULL;
+GL_GETUNIFORMLOCATION glGetUniformLocation = NULL;
 
 void ValidateGLFunctions()
 {
@@ -169,4 +173,6 @@ void InitializeOpenGlFunctions()
   glDeleteVertexArrays = (GL_DELETEVERTEXARRAYS)wglGetProcAddress("glDeleteVertexArrays");
   glDeleteBuffers = (GL_DELETEBUFFERS)wglGetProcAddress("glDeleteBuffers");
   glDeleteProgram = (GL_DELETEPROGRAM)wglGetProcAddress("glDeleteProgram");
+  glUniform4f = (GL_UNIFORM4F)wglGetProcAddress("glUniform4f");
+  glGetUniformLocation = (GL_GETUNIFORMLOCATION)wglGetProcAddress("glGetUniformLocation");
 }
