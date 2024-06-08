@@ -21,6 +21,30 @@ char* CStrFromFile(std::string path)
   return buf;
 }
 
+// const char* fragment_shader_source =
+//     "#version 330 core\n"
+//     "out vec4 FragColor;\n"
+//     "in vec3 ourColor;\n"
+//     "in vec4 pos;\n"
+//     "void main()\n"
+//     "{\n"
+//     "  FragColor = vec4(pos.r + 0.5f, pos.g + 0.5f, pos.b + 0.5f , 1.0f);\n"
+//     "};";
+
+// const char* vertex_shader_source =
+//     "#version 330 core\n"
+//     "layout (location = 0) in vec3 aPos;\n"
+//     "layout (location = 1) in vec3 aColor;\n"
+//     "out vec3 ourColor;\n"
+//     "out vec4 pos;\n"
+//     "uniform float xOffset;\n"
+//     "void main()\n"
+//     "{\n"
+//     "   gl_Position = vec4(aPos.x + xOffset, aPos.y, aPos.z, 1.0);\n"
+//     "   ourColor = aColor;\n"
+//     "   pos = gl_Position;\n"
+//     "};"
+
 char* vertex_source = CStrFromFile("./src/shaders/vert.glsl");
 const char* vertex_shader_from_file = vertex_source;
 char* frag_source = CStrFromFile("./src/shaders/frag.glsl");
@@ -51,6 +75,7 @@ typedef void (*GL_DELETEBUFFERS)(GLsizei, const GLuint*);
 typedef void (*GL_DELETEPROGRAM)(GLuint);
 typedef void (*GL_UNIFORM4F)(GLint, GLfloat, GLfloat, GLfloat, GLfloat);
 typedef GLint (*GL_GETUNIFORMLOCATION)(GLuint, const GLchar*);
+typedef void (*GL_UNIFORM1F)(GLint, GLfloat);
 
 GL_GENBUFFERS glGenBuffers = NULL;
 GL_BINDBUFFER glBindBuffer = NULL;
@@ -73,6 +98,7 @@ GL_DELETEBUFFERS glDeleteBuffers = NULL;
 GL_DELETEPROGRAM glDeleteProgram = NULL;
 GL_UNIFORM4F glUniform4f = NULL;
 GL_GETUNIFORMLOCATION glGetUniformLocation = NULL;
+GL_UNIFORM1F glUniform1f = NULL;
 
 void ValidateGLFunctions()
 {
@@ -177,4 +203,5 @@ void InitializeOpenGlFunctions()
   glDeleteProgram = (GL_DELETEPROGRAM)wglGetProcAddress("glDeleteProgram");
   glUniform4f = (GL_UNIFORM4F)wglGetProcAddress("glUniform4f");
   glGetUniformLocation = (GL_GETUNIFORMLOCATION)wglGetProcAddress("glGetUniformLocation");
+  glUniform1f = (GL_UNIFORM1F)wglGetProcAddress("glUniform1f");
 }

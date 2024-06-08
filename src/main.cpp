@@ -12,8 +12,10 @@
 
 #include "ogl.cpp"
 
-const int TARGET_FPS = 120;
+const int TARGET_FPS = 60;
 const double FRAME_DURATION = 1000.0 / TARGET_FPS;
+
+static int64_t global_perf_count_frequency;
 
 union Vec3
 {
@@ -40,12 +42,16 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void processInput(GLFWwindow* window)
 {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    glfwSetWindowShouldClose(window, true);
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+inline LARGE_INTEGER Win32GetWallClock()
+{
+  LARGE_INTEGER Result;
+  QueryPerformanceCounter(&Result);
+  return Result;
 }
 
 void RotateTriangles(Vec3F2 arr[], size_t count, float angle = 0.05f)
@@ -55,13 +61,13 @@ void RotateTriangles(Vec3F2 arr[], size_t count, float angle = 0.05f)
     float cosTheta, sinTheta;
     if (i % 66969 == 0)
     {
-      // Rotate left (counterclockwise)
+      // Rotate left
       cosTheta = cos(angle);
       sinTheta = sin(angle);
     }
     else
     {
-      // Rotate right (clockwise)
+      // Rotate right
       cosTheta = cos(-angle);
       sinTheta = sin(-angle);
     }
@@ -73,8 +79,21 @@ void RotateTriangles(Vec3F2 arr[], size_t count, float angle = 0.05f)
   }
 }
 
+inline float Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
+{
+  float Result = ((float)End.QuadPart - Start.QuadPart) / (float)global_perf_count_frequency;
+  return Result;
+}
+
 int main()
 {
+  LARGE_INTEGER perf_freq_result;
+  QueryPerformanceFrequency(&perf_freq_result);
+  global_perf_count_frequency = perf_freq_result.QuadPart;
+  TIMECAPS caps;
+  timeGetDevCaps(&caps, sizeof(caps));
+  UINT DesiredSchedulerMS = 1;
+  bool SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -111,11 +130,11 @@ int main()
   glDeleteShader(fragmentShader);
   Vec3F2 vertices[] = {
       // positions         // colors
-      0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,  // bottom right
-      -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  // bottom left
-      0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f   // top
+      0.5f,  -0.0f, 0.0f, 1.0f, 0.0f, 0.0f,  // bottom right
+      -0.5f, 0.0f,  0.0f, 0.0f, 1.0f, 0.0f,  // bottom left
+      0.0f,  -0.5f, 0.0f, 0.0f, 0.0f, 1.0f   // top
   };
-  std::cout << sizeof(vertices);
+
   float secondTriangle[] = {0.0f, -0.5f, 0.0f, 0.9f, -0.5f, 0.0f, 0.45f, 0.5f, 0.0f};
   unsigned int VBOs[2], VAOs[2];
   glGenVertexArrays(2, VAOs);
@@ -132,9 +151,11 @@ int main()
   uint64_t frame_count = 0;
   glUseProgram(shaderProgram);
 
+  glUniform1f(glGetUniformLocation(shaderProgram, "xOffset"), 0.0f);
+
   while (!glfwWindowShouldClose(window))
   {
-    auto start_time = std::chrono::high_resolution_clock::now();
+    LARGE_INTEGER Start = Win32GetWallClock();
     processInput(window);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -144,13 +165,11 @@ int main()
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
     glfwPollEvents();
     glfwSwapBuffers(window);
-    auto end_time = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> elapsed_time = end_time - start_time;
-
-    if (elapsed_time.count() < FRAME_DURATION)
+    LARGE_INTEGER End = Win32GetWallClock();
+    float elapsed_time = Win32GetSecondsElapsed(Start, End);
+    if (elapsed_time < FRAME_DURATION)
     {
-      std::this_thread::sleep_for(
-          std::chrono::milliseconds(static_cast<int>(FRAME_DURATION - elapsed_time.count())));
+      Sleep(static_cast<int>(FRAME_DURATION - elapsed_time));
     }
   }
   glDeleteVertexArrays(2, VAOs);
