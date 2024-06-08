@@ -4,25 +4,27 @@
 #define GL_FRAGMENT_SHADER 0x8B30
 #define GL_ELEMENT_ARRAY_BUFFER 0x8893
 
-std::string readShaderSource(const std::string& filePath)
+char* CStrFromFile(std::string path)
 {
-  std::ifstream file(filePath);
-  if (!file.is_open())
+  std::ifstream file(path, std::ios::binary);
+  if (!file)
   {
-    std::cout << "DIDN'T FIND FILE\n";
+    std::cout << "File does not exist\n";
     return "";
   }
-
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  return buffer.str();
+  file.seekg(0, file.end);
+  int length = file.tellg();
+  file.seekg(0, file.beg);
+  char* buf = new char[length + 1];
+  file.read(buf, length);
+  buf[length] = '\0';
+  return buf;
 }
 
-std::string vertexShaderSourceStr = readShaderSource("./src/shaders/vert.glsl");
-// const char* vertexShaderSource = vertexShaderSourceStr.c_str();
-std::string fragShaderSourceStr = readShaderSource("./src/shaders/frag.glsl");
-// const char* fragmentShaderSource = fragShaderSourceStr.c_str();
+char* vertex_source = CStrFromFile("./src/shaders/vert.glsl");
+const char* vertex_shader_from_file = vertex_source;
+char* frag_source = CStrFromFile("./src/shaders/frag.glsl");
+const char* fragment_shader_from_file = frag_source;
 
 typedef char GLchar;
 typedef ptrdiff_t GLsizeiptr;
