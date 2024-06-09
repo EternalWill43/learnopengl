@@ -1,6 +1,7 @@
 #include <Windows.h>
 #include <gl/GL.h>
 #include <glfw3.h>
+#include <stb_image.h>
 
 #include <chrono>
 #include <fstream>
@@ -33,19 +34,16 @@ struct Vec3F2
   float z = 0.0f;
 };
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
   glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow* window)
+void processInput(GLFWwindow *window)
 {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    glfwSetWindowShouldClose(window, true);
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void RotateTriangles(Vec3F2 arr[], size_t count, float angle = 0.05f)
@@ -80,7 +78,7 @@ int main()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  GLFWwindow* window = glfwCreateWindow(800, 800, "Wow Triangle", NULL, NULL);
+  GLFWwindow *window = glfwCreateWindow(800, 800, "Wow Triangle", NULL, NULL);
   if (window == NULL)
   {
     std::cout << "Failed to create GLFW window" << std::endl;
@@ -109,52 +107,98 @@ int main()
 
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);
-  Vec3F2 vertices[] = {
-      // positions         // colors
-      0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,  // bottom right
-      -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  // bottom left
-      0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f   // top
+  float vertices[] = {
+      // positions          // colors           // texture coords
+      0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  // top right
+      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
+      -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,  // bottom left
+      -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f   // top left
   };
-  std::cout << sizeof(vertices);
-  float secondTriangle[] = {0.0f, -0.5f, 0.0f, 0.9f, -0.5f, 0.0f, 0.45f, 0.5f, 0.0f};
-  unsigned int VBOs[2], VAOs[2];
-  glGenVertexArrays(2, VAOs);
-  glGenBuffers(2, VBOs);
+  unsigned int indices[] = {
+      0, 1, 3,  // first triangle
+      1, 2, 3   // second triangle
+  };
+  unsigned int VBO, VAO, EBO;
+  glGenVertexArrays(1, &VAO);
+  glGenBuffers(1, &VBO);
+  glGenBuffers(1, &EBO);
 
-  glBindVertexArray(VAOs[0]);
-  glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
+  glBindVertexArray(VAO);
+
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+  // position attribute
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+  // color attribute
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
+  // texture coord attribute
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
+  glEnableVertexAttribArray(2);
 
   uint64_t frame_count = 0;
   glUseProgram(shaderProgram);
 
+  unsigned int texture;
+  glGenTextures(1, &texture);
+  glBindTexture(
+      GL_TEXTURE_2D,
+      texture);  // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+  // set the texture wrapping parameters
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                  GL_REPEAT);  // set texture wrapping to GL_REPEAT (default wrapping method)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  // set texture filtering parameters
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // load image, create texture and generate mipmaps
+  int width, height, nrChannels;
+  // The FileSystem::getPath(...) is part of the GitHub repository, so we can find files on any
+  // IDE/platform; replace it with your own image path.
+  unsigned char *data = stbi_load("./src/container.jpg", &width, &height, &nrChannels, 0);
+  if (data)
+  {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+  else
+  {
+    std::cout << "Failed to load texture" << std::endl;
+  }
+  stbi_image_free(data);
+
+  // render loop
+  // -----------
   while (!glfwWindowShouldClose(window))
   {
-    auto start_time = std::chrono::high_resolution_clock::now();
+    // input
+    // -----
     processInput(window);
+
+    // render
+    // ------
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    glBindVertexArray(VAOs[0]);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    RotateTriangles(vertices, sizeof(vertices) / sizeof(Vec3F2));
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-    glfwPollEvents();
-    glfwSwapBuffers(window);
-    auto end_time = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> elapsed_time = end_time - start_time;
 
-    if (elapsed_time.count() < FRAME_DURATION)
-    {
-      std::this_thread::sleep_for(
-          std::chrono::milliseconds(static_cast<int>(FRAME_DURATION - elapsed_time.count())));
-    }
+    // bind Texture
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    // render container
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+    // -------------------------------------------------------------------------------
+    glfwSwapBuffers(window);
+    glfwPollEvents();
   }
-  glDeleteVertexArrays(2, VAOs);
-  glDeleteBuffers(2, VBOs);
+  glDeleteVertexArrays(1, &VAO);
+  glDeleteBuffers(1, &VBO);
   glDeleteProgram(shaderProgram);
 
   glfwTerminate();
