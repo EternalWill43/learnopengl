@@ -4,7 +4,7 @@
 #define GL_FRAGMENT_SHADER 0x8B30
 #define GL_ELEMENT_ARRAY_BUFFER 0x8893
 
-char* CStrFromFile(std::string path)
+char *CStrFromFile(std::string path)
 {
   std::ifstream file(path, std::ios::binary);
   if (!file)
@@ -15,40 +15,43 @@ char* CStrFromFile(std::string path)
   file.seekg(0, file.end);
   int length = file.tellg();
   file.seekg(0, file.beg);
-  char* buf = new char[length + 1];
+  char *buf = new char[length + 1];
   file.read(buf, length);
   buf[length] = '\0';
   return buf;
 }
 
-const char* fragment_shader_source =
-    "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "in vec3 ourColor;\n"
-    "in vec2 TexCoord;\n"
-    "in vec4 pos;\n"
-    "uniform sampler2D ourTexture;"
-    "void main()\n"
-    "{\n"
-    "  FragColor = texture(ourTexture, TexCoord);\n"
-    "};";
+char *frag_file = CStrFromFile("./src/shaders/frag.glsl");
+char *vert_file = CStrFromFile("./src/shaders/vert.glsl");
 
-const char* vertex_shader_source =
-    "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "layout (location = 1) in vec3 aColor;\n"
-    "layout (location = 2) in vec2 aTexCoord\n"
-    "out vec3 ourColor;\n"
-    "out vec4 pos;\n"
-    "out vec2 TexCoord;\n"
-    "uniform float xOffset;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(aPos.x + xOffset, aPos.y, aPos.z, 1.0);\n"
-    "   ourColor = aColor;\n"
-    "   pos = gl_Position;\n"
-    "   TexCoord = aTexCoord;\n"
-    "};";
+const char *fragment_shader_source = frag_file;
+// "#version 330 core\n"
+// "out vec4 FragColor;\n"
+// "in vec3 ourColor;\n"
+// "in vec2 TexCoord;\n"
+// "in vec4 pos;\n"
+// "uniform sampler2D ourTexture;"
+// "void main()\n"
+// "{\n"
+// "  FragColor = texture(ourTexture, TexCoord);\n"
+// "};";
+
+const char *vertex_shader_source = vert_file;
+// "#version 330 core\n"
+// "layout (location = 0) in vec3 aPos;\n"
+// "layout (location = 1) in vec3 aColor;\n"
+// "layout (location = 2) in vec2 aTexCoord\n"
+// "out vec3 ourColor;\n"
+// "out vec4 pos;\n"
+// "out vec2 TexCoord;\n"
+// "uniform float xOffset;\n"
+// "void main()\n"
+// "{\n"
+// "   gl_Position = vec4(aPos.x + xOffset, aPos.y, aPos.z, 1.0);\n"
+// "   ourColor = aColor;\n"
+// "   pos = gl_Position;\n"
+// "   TexCoord = aTexCoord;\n"
+// "};";
 
 // NOTE: Can't statically link the binary if I have to do file i/o
 // char* vertex_source = CStrFromFile("./src/shaders/vert.glsl");
@@ -60,28 +63,29 @@ typedef char GLchar;
 typedef ptrdiff_t GLsizeiptr;
 typedef ptrdiff_t GLintptr;
 
-typedef void (*GL_GENBUFFERS)(GLsizei, GLuint*);
-typedef void (*GL_BINDBUFFER)(GLenum, GLuint);
-typedef void (*GL_BUFFERDATA)(GLenum, GLsizeiptr, const void*, GLenum);
-typedef GLuint (*GL_CREATESHADER)(GLenum);
-typedef void (*GL_SHADERSOURCE)(GLuint, GLsizei, const GLchar**, const GLint*);
-typedef void (*GL_COMPILESHADER)(GLuint);
-typedef GLuint (*GL_CREATEPROGRAM)(void);
-typedef void (*GL_ATTACHSHADER)(GLuint, GLuint);
-typedef void (*GL_LINKPROGRAM)(GLuint);
-typedef void (*GL_USEPROGRAM)(GLuint);
-typedef void (*GL_DELETESHADER)(GLuint);
-typedef void (*GL_VERTEXATTRIBPOINTER)(GLuint, GLint, GLenum, GLboolean, GLsizei, const void*);
-typedef void (*GL_ENABLEVERTEXATTRIBARRAY)(GLuint);
-typedef void (*GL_GENVERTEXARRAYS)(GLsizei, GLuint*);
-typedef void (*GL_BINDVERTEXARRAY)(GLuint);
-typedef void (*GL_BUFFERSUBDATA)(GLenum, GLintptr, GLsizeiptr, const void* data);
-typedef void (*GL_DELETEVERTEXARRAYS)(GLsizei, const GLuint*);
-typedef void (*GL_DELETEBUFFERS)(GLsizei, const GLuint*);
-typedef void (*GL_DELETEPROGRAM)(GLuint);
-typedef void (*GL_UNIFORM4F)(GLint, GLfloat, GLfloat, GLfloat, GLfloat);
-typedef GLint (*GL_GETUNIFORMLOCATION)(GLuint, const GLchar*);
-typedef void (*GL_GENERATEMIPMAP)(GLenum);
+typedef void(APIENTRY *GL_GENBUFFERS)(GLsizei, GLuint *);
+typedef void(APIENTRY *GL_BINDBUFFER)(GLenum, GLuint);
+typedef void(APIENTRY *GL_BUFFERDATA)(GLenum, GLsizeiptr, const void *, GLenum);
+typedef GLuint(APIENTRY *GL_CREATESHADER)(GLenum);
+typedef void(APIENTRY *GL_SHADERSOURCE)(GLuint, GLsizei, const GLchar **, const GLint *);
+typedef void(APIENTRY *GL_COMPILESHADER)(GLuint);
+typedef GLuint(APIENTRY *GL_CREATEPROGRAM)(void);
+typedef void(APIENTRY *GL_ATTACHSHADER)(GLuint, GLuint);
+typedef void(APIENTRY *GL_LINKPROGRAM)(GLuint);
+typedef void(APIENTRY *GL_USEPROGRAM)(GLuint);
+typedef void(APIENTRY *GL_DELETESHADER)(GLuint);
+typedef void(APIENTRY *GL_VERTEXATTRIBPOINTER)(GLuint, GLint, GLenum, GLboolean, GLsizei,
+                                               const void *);
+typedef void(APIENTRY *GL_ENABLEVERTEXATTRIBARRAY)(GLuint);
+typedef void(APIENTRY *GL_GENVERTEXARRAYS)(GLsizei, GLuint *);
+typedef void(APIENTRY *GL_BINDVERTEXARRAY)(GLuint);
+typedef void(APIENTRY *GL_BUFFERSUBDATA)(GLenum, GLintptr, GLsizeiptr, const void *data);
+typedef void(APIENTRY *GL_DELETEVERTEXARRAYS)(GLsizei, const GLuint *);
+typedef void(APIENTRY *GL_DELETEBUFFERS)(GLsizei, const GLuint *);
+typedef void(APIENTRY *GL_DELETEPROGRAM)(GLuint);
+typedef void(APIENTRY *GL_UNIFORM4F)(GLint, GLfloat, GLfloat, GLfloat, GLfloat);
+typedef GLint(APIENTRY *GL_GETUNIFORMLOCATION)(GLuint, const GLchar *);
+typedef void(APIENTRY *GL_GENERATEMIPMAP)(GLenum);
 
 GL_GENBUFFERS glGenBuffers = NULL;
 GL_BINDBUFFER glBindBuffer = NULL;
@@ -106,6 +110,7 @@ GL_UNIFORM4F glUniform4f = NULL;
 GL_GETUNIFORMLOCATION glGetUniformLocation = NULL;
 GL_GENERATEMIPMAP glGenerateMipmap = NULL;
 
+// TODO: Fix the prints to match the functions
 void ValidateGLFunctions()
 {
   if (glGenBuffers == NULL)
@@ -183,6 +188,31 @@ void ValidateGLFunctions()
     std::cout << "glBindVertexArray function null\n";
     exit(1);
   }
+  if (glDeleteBuffers == NULL)
+  {
+    std::cout << "glBindVertexArray function null\n";
+    exit(1);
+  }
+  if (glDeleteProgram == NULL)
+  {
+    std::cout << "glBindVertexArray function null\n";
+    exit(1);
+  }
+  if (glUniform4f == NULL)
+  {
+    std::cout << "glBindVertexArray function null\n";
+    exit(1);
+  }
+  if (glGetUniformLocation == NULL)
+  {
+    std::cout << "glBindVertexArray function null\n";
+    exit(1);
+  }
+  if (glGenerateMipmap == NULL)
+  {
+    std::cout << "glBindVertexArray function null\n";
+    exit(1);
+  }
 }
 
 void InitializeOpenGlFunctions()
@@ -210,3 +240,4 @@ void InitializeOpenGlFunctions()
   glUniform4f = (GL_UNIFORM4F)wglGetProcAddress("glUniform4f");
   glGetUniformLocation = (GL_GETUNIFORMLOCATION)wglGetProcAddress("glGetUniformLocation");
   glGenerateMipmap = (GL_GENERATEMIPMAP)wglGetProcAddress("glGenerateMipmap");
+}

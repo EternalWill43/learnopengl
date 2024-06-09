@@ -1,15 +1,18 @@
 #include <Windows.h>
+// -----------------------
 #include <gl/GL.h>
-#include <glfw3.h>
+//------
+#include <GLFW/glfw3.h>
 #include <stb_image.h>
 
+#include <fstream>
 #include <iostream>
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window);
+#include "ogl.cpp"
 
 const int TARGET_FPS = 120;
 const double FRAME_DURATION = 1000.0 / TARGET_FPS;
+static int64_t global_perf_count_frequency;
 
 union Vec3
 {
@@ -28,6 +31,19 @@ struct Vec3F2
   float y;
   float z = 0.0f;
 };
+
+inline LARGE_INTEGER Win32GetWallClock()
+{
+  LARGE_INTEGER Result;
+  QueryPerformanceCounter(&Result);
+  return Result;
+}
+
+inline float Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
+{
+  float Result = ((float)End.QuadPart - Start.QuadPart) / (float)global_perf_count_frequency;
+  return Result;
+}
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
@@ -68,8 +84,13 @@ void RotateTriangles(Vec3F2 arr[], size_t count, float angle = 0.05f)
 
 int main()
 {
-  // glfw: initialize and configure
-  // ------------------------------
+  LARGE_INTEGER perf_freq_result;
+  QueryPerformanceFrequency(&perf_freq_result);
+  global_perf_count_frequency = perf_freq_result.QuadPart;
+  TIMECAPS caps;
+  timeGetDevCaps(&caps, sizeof(caps));
+  UINT DesiredSchedulerMS = 1;
+  bool SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -82,32 +103,29 @@ int main()
     glfwTerminate();
     return -1;
   }
-  glfwMakeContextCurrent(window);
+  glViewport(0, 0, 800, 600);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+  glfwMakeContextCurrent(window);
 
-  // glad: load all OpenGL function pointers
-  // ---------------------------------------
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-  {
-    std::cout << "Failed to initialize GLAD" << std::endl;
-    return -1;
-  }
+  InitializeOpenGlFunctions();
+  ValidateGLFunctions();
 
-  // build and compile our shader zprogram
-  // ------------------------------------
-  Shader ourShader("./src/shaders/vert.glsl", "./src/shaders/frag.glsl");
+  unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+  glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
+  glCompileShader(vertex_shader);
 
-  unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragmentShader, 1, &fragment_shader_from_file, NULL);
-  glCompileShader(fragmentShader);
+  unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
+  glCompileShader(fragment_shader);
 
   unsigned int shaderProgram = glCreateProgram();
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
+  glAttachShader(shaderProgram, vertex_shader);
+  glAttachShader(shaderProgram, fragment_shader);
   glLinkProgram(shaderProgram);
 
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
+  glDeleteShader(vertex_shader);
+  glDeleteShader(fragment_shader);
+
   float vertices[] = {
       // positions          // colors           // texture coords
       0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  // top right
@@ -142,52 +160,15 @@ int main()
   glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
   glEnableVertexAttribArray(2);
 
-  // load and create a texture
-  // -------------------------
   unsigned int texture;
   glGenTextures(1, &texture);
-  glBindTexture(
-      GL_TEXTURE_2D,
-      texture);  // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-  // set the texture wrapping parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                  GL_REPEAT);  // set texture wrapping to GL_REPEAT (default wrapping method)
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  // set texture filtering parameters
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  // load image, create texture and generate mipmaps
-  int width, height, nrChannels;
-  // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any
-  // IDE/platform; replace it with your own image path.
-  unsigned char* data = stbi_load("./src/container.jpg", &width, &height, &nrChannels, 0);
-  if (data)
-  {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-  }
-  else
-  {
-    std::cout << "Failed to load texture" << std::endl;
-  }
-  stbi_image_free(data);
 
-  unsigned int texture;
-  glGenTextures(1, &texture);
-  glBindTexture(
-      GL_TEXTURE_2D,
-      texture);  // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-  // set the texture wrapping parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                  GL_REPEAT);  // set texture wrapping to GL_REPEAT (default wrapping method)
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  // set texture filtering parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  // load image, create texture and generate mipmaps
   int width, height, nrChannels;
-  // The FileSystem::getPath(...) is part of the GitHub repository, so we can find files on any
-  // IDE/platform; replace it with your own image path.
   unsigned char *data = stbi_load("./src/container.jpg", &width, &height, &nrChannels, 0);
   if (data)
   {
@@ -199,61 +180,29 @@ int main()
     std::cout << "Failed to load texture" << std::endl;
   }
   stbi_image_free(data);
+  glUseProgram(shaderProgram);
 
-  // render loop
-  // -----------
   while (!glfwWindowShouldClose(window))
   {
-    // input
-    // -----
     processInput(window);
 
-    // render
-    // ------
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // bind Texture
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    // render container
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-    // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-    // -------------------------------------------------------------------------------
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
-  glDeleteVertexArrays(1, &VAO);
-  glDeleteBuffers(1, &VBO);
-  glDeleteProgram(shaderProgram);
 
-  // optional: de-allocate all resources once they've outlived their purpose:
-  // ------------------------------------------------------------------------
+  glDeleteProgram(shaderProgram);
   glDeleteVertexArrays(1, &VAO);
   glDeleteBuffers(1, &VBO);
   glDeleteBuffers(1, &EBO);
 
-  // glfw: terminate, clearing all previously allocated GLFW resources.
-  // ------------------------------------------------------------------
   glfwTerminate();
   return 0;
 }
-
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react
-// accordingly
-// ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow* window)
-{
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    glfwSetWindowShouldClose(window, true);
-}
-
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-  // make sure the viewport matches the new window dimensions; note that width and
-  // height will be significantly larger than specified on retina displays.
-  glViewport(0, 0, width, height);
