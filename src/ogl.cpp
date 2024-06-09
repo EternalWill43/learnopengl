@@ -10,7 +10,7 @@ char* CStrFromFile(std::string path)
   if (!file)
   {
     std::cout << "File does not exist\n";
-    return "";
+    return nullptr;
   }
   file.seekg(0, file.end);
   int length = file.tellg();
@@ -81,7 +81,6 @@ typedef void (*GL_DELETEBUFFERS)(GLsizei, const GLuint*);
 typedef void (*GL_DELETEPROGRAM)(GLuint);
 typedef void (*GL_UNIFORM4F)(GLint, GLfloat, GLfloat, GLfloat, GLfloat);
 typedef GLint (*GL_GETUNIFORMLOCATION)(GLuint, const GLchar*);
-typedef void (*GL_UNIFORM1F)(GLint, GLfloat);
 typedef void (*GL_GENERATEMIPMAP)(GLenum);
 
 GL_GENBUFFERS glGenBuffers = NULL;
@@ -105,7 +104,6 @@ GL_DELETEBUFFERS glDeleteBuffers = NULL;
 GL_DELETEPROGRAM glDeleteProgram = NULL;
 GL_UNIFORM4F glUniform4f = NULL;
 GL_GETUNIFORMLOCATION glGetUniformLocation = NULL;
-GL_UNIFORM1F glUniform1f = NULL;
 GL_GENERATEMIPMAP glGenerateMipmap = NULL;
 
 void ValidateGLFunctions()
@@ -211,6 +209,4 @@ void InitializeOpenGlFunctions()
   glDeleteProgram = (GL_DELETEPROGRAM)wglGetProcAddress("glDeleteProgram");
   glUniform4f = (GL_UNIFORM4F)wglGetProcAddress("glUniform4f");
   glGetUniformLocation = (GL_GETUNIFORMLOCATION)wglGetProcAddress("glGetUniformLocation");
-  glUniform1f = (GL_UNIFORM1F)wglGetProcAddress("glUniform1f");
   glGenerateMipmap = (GL_GENERATEMIPMAP)wglGetProcAddress("glGenerateMipmap");
-}
