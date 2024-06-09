@@ -18,6 +18,8 @@ static unsigned int flip_location;
 static float flip = 0.0f;
 static uint8_t rotate = 0;
 static uint8_t r_down = 0;
+static float opacity = 0.2f;
+static float angle = 0.15f;
 
 union Vec3
 {
@@ -61,6 +63,22 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
   glViewport(0, 0, width, height);
 }
 
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+  if (yoffset > 0.0f)
+  {
+    opacity += 0.1f;
+    if (opacity > 1.0f)
+      opacity = 1.0f;
+  }
+  else
+  {
+    opacity -= 0.1f;
+    if (opacity < 0.0f)
+      opacity = 0.0f;
+  }
+}
+
 void processInput(GLFWwindow* window)
 {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -73,6 +91,18 @@ void processInput(GLFWwindow* window)
     flip = 1.0f;
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     flip = 0.0f;
+  if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
+  {
+    angle += 0.05f;
+  }
+  if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
+  {
+    angle -= 0.05f;
+    if (angle < 0.0f)
+    {
+      angle = 0.0f;
+    }
+  }
   if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !r_down)
   {
     rotate = rotate ? 0 : 1;
@@ -84,20 +114,18 @@ void processInput(GLFWwindow* window)
   }
 }
 
-void RotateTriangles(Vec3F2 arr[], size_t count, float angle = 0.05f)
+void RotateTriangles(Vec3F2 arr[], size_t count)
 {
   for (size_t i = 0; i < count; i += 2)
   {
     float cosTheta, sinTheta;
     if (i % 66969 == 0)
     {
-      // Rotate left (counterclockwise)
       cosTheta = cos(angle);
       sinTheta = sin(angle);
     }
     else
     {
-      // Rotate right (clockwise)
       cosTheta = cos(-angle);
       sinTheta = sin(-angle);
     }
@@ -158,6 +186,7 @@ int main()
   }
   glViewport(0, 0, 800, 600);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+  glfwSetScrollCallback(window, scroll_callback);
   glfwMakeContextCurrent(window);
 
   InitializeOpenGlFunctions();
@@ -182,10 +211,10 @@ int main()
   // ------------------------------------------------------------------
   float vertices[] = {
       // positions          // colors           // texture coords
-      0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 2.0f, 2.0f,  // top right
-      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 2.0f, 0.0f,  // bottom right
+      0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  // top right
+      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
       -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,  // bottom left
-      -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 2.0f   // top left
+      -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f   // top left
   };
   unsigned int indices[] = {
       0, 1, 3,  // first triangle
@@ -226,8 +255,8 @@ int main()
                   GL_CLAMP_TO_EDGE);  // set texture wrapping to GL_REPEAT (default wrapping method)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   // set texture filtering parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   // load image, create texture and generate mipmaps
   int width, height, nrChannels;
   stbi_set_flip_vertically_on_load(
@@ -254,8 +283,8 @@ int main()
                   GL_REPEAT);  // set texture wrapping to GL_REPEAT (default wrapping method)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   // set texture filtering parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   // load image, create texture and generate mipmaps
   data = stbi_load("./src/awesomeface.png", &width, &height, &nrChannels, 0);
   if (data)
@@ -280,6 +309,7 @@ int main()
   glUniform1i(glGetUniformLocation(shaderProgram, "texture2"), 1);
   flip_location = glGetUniformLocation(shaderProgram, "flip");
   float flip_value;
+  int opacity_location = glGetUniformLocation(shaderProgram, "opacity");
 
   // render loop
   // -----------
@@ -301,6 +331,7 @@ int main()
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture2);
     glUniform1f(flip_location, flip);
+    glUniform1f(opacity_location, opacity);
     // glGetUniformfv(shaderProgram, flip_location, &flip_value);
     // std::cout << "Flip value is: " << flip_value << "\n";
     // render container
