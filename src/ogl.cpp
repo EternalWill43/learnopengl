@@ -6,8 +6,11 @@
 #define GL_TEXTURE0 0x84C0
 #define GL_TEXTURE1 0x84C1
 #define GL_TEXTURE2 0x84C2
+#define GL_CLAMP_TO_EDGE 0x812F
+#define GL_CLAMP 0x2900
+#define GL_CLAMP_TO_BORDER 0x812D
 
-char *CStrFromFile(std::string path)
+char* CStrFromFile(std::string path)
 {
   std::ifstream file(path, std::ios::binary);
   if (!file)
@@ -18,16 +21,16 @@ char *CStrFromFile(std::string path)
   file.seekg(0, file.end);
   int length = file.tellg();
   file.seekg(0, file.beg);
-  char *buf = new char[length + 1];
+  char* buf = new char[length + 1];
   file.read(buf, length);
   buf[length] = '\0';
   return buf;
 }
 
-const char *frag_file = CStrFromFile("./src/shaders/frag.glsl");
-const char *vert_file = CStrFromFile("./src/shaders/vert.glsl");
+const char* frag_file = CStrFromFile("./src/shaders/frag.glsl");
+const char* vert_file = CStrFromFile("./src/shaders/vert.glsl");
 
-const char *fragment_shader_source =
+const char* fragment_shader_source =
     "#version 330 core\n"
     "out vec4 FragColor;\n"
     "  \n"
@@ -41,7 +44,7 @@ const char *fragment_shader_source =
     "    FragColor = texture(ourTexture, TexCoord) * vec4(ourColor, 1.0); \n"
     "}";
 
-const char *vertex_shader_source =
+const char* vertex_shader_source =
     "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
     "layout (location = 1) in vec3 aColor;\n"
@@ -67,32 +70,33 @@ typedef char GLchar;
 typedef ptrdiff_t GLsizeiptr;
 typedef ptrdiff_t GLintptr;
 
-typedef void(APIENTRY *GL_GENBUFFERS)(GLsizei, GLuint *);
-typedef void(APIENTRY *GL_BINDBUFFER)(GLenum, GLuint);
-typedef void(APIENTRY *GL_BUFFERDATA)(GLenum, GLsizeiptr, const void *, GLenum);
-typedef GLuint(APIENTRY *GL_CREATESHADER)(GLenum);
-typedef void(APIENTRY *GL_SHADERSOURCE)(GLuint, GLsizei, const GLchar **, const GLint *);
-typedef void(APIENTRY *GL_COMPILESHADER)(GLuint);
-typedef GLuint(APIENTRY *GL_CREATEPROGRAM)(void);
-typedef void(APIENTRY *GL_ATTACHSHADER)(GLuint, GLuint);
-typedef void(APIENTRY *GL_LINKPROGRAM)(GLuint);
-typedef void(APIENTRY *GL_USEPROGRAM)(GLuint);
-typedef void(APIENTRY *GL_DELETESHADER)(GLuint);
-typedef void(APIENTRY *GL_VERTEXATTRIBPOINTER)(GLuint, GLint, GLenum, GLboolean, GLsizei,
-                                               const void *);
-typedef void(APIENTRY *GL_ENABLEVERTEXATTRIBARRAY)(GLuint);
-typedef void(APIENTRY *GL_GENVERTEXARRAYS)(GLsizei, GLuint *);
-typedef void(APIENTRY *GL_BINDVERTEXARRAY)(GLuint);
-typedef void(APIENTRY *GL_BUFFERSUBDATA)(GLenum, GLintptr, GLsizeiptr, const void *data);
-typedef void(APIENTRY *GL_DELETEVERTEXARRAYS)(GLsizei, const GLuint *);
-typedef void(APIENTRY *GL_DELETEBUFFERS)(GLsizei, const GLuint *);
-typedef void(APIENTRY *GL_DELETEPROGRAM)(GLuint);
-typedef void(APIENTRY *GL_UNIFORM4F)(GLint, GLfloat, GLfloat, GLfloat, GLfloat);
-typedef GLint(APIENTRY *GL_GETUNIFORMLOCATION)(GLuint, const GLchar *);
-typedef void(APIENTRY *GL_GENERATEMIPMAP)(GLenum);
-typedef void(APIENTRY *GL_ACTIVETEXTURE)(GLenum);
-typedef void(APIENTRY *GL_UNIFORM1I)(GLint, GLint);
-typedef void(APIENTRY *GL_UNIFORM1F)(GLint, GLfloat);
+typedef void(APIENTRY* GL_GENBUFFERS)(GLsizei, GLuint*);
+typedef void(APIENTRY* GL_BINDBUFFER)(GLenum, GLuint);
+typedef void(APIENTRY* GL_BUFFERDATA)(GLenum, GLsizeiptr, const void*, GLenum);
+typedef GLuint(APIENTRY* GL_CREATESHADER)(GLenum);
+typedef void(APIENTRY* GL_SHADERSOURCE)(GLuint, GLsizei, const GLchar**, const GLint*);
+typedef void(APIENTRY* GL_COMPILESHADER)(GLuint);
+typedef GLuint(APIENTRY* GL_CREATEPROGRAM)(void);
+typedef void(APIENTRY* GL_ATTACHSHADER)(GLuint, GLuint);
+typedef void(APIENTRY* GL_LINKPROGRAM)(GLuint);
+typedef void(APIENTRY* GL_USEPROGRAM)(GLuint);
+typedef void(APIENTRY* GL_DELETESHADER)(GLuint);
+typedef void(
+    APIENTRY* GL_VERTEXATTRIBPOINTER)(GLuint, GLint, GLenum, GLboolean, GLsizei, const void*);
+typedef void(APIENTRY* GL_ENABLEVERTEXATTRIBARRAY)(GLuint);
+typedef void(APIENTRY* GL_GENVERTEXARRAYS)(GLsizei, GLuint*);
+typedef void(APIENTRY* GL_BINDVERTEXARRAY)(GLuint);
+typedef void(APIENTRY* GL_BUFFERSUBDATA)(GLenum, GLintptr, GLsizeiptr, const void* data);
+typedef void(APIENTRY* GL_DELETEVERTEXARRAYS)(GLsizei, const GLuint*);
+typedef void(APIENTRY* GL_DELETEBUFFERS)(GLsizei, const GLuint*);
+typedef void(APIENTRY* GL_DELETEPROGRAM)(GLuint);
+typedef void(APIENTRY* GL_UNIFORM4F)(GLint, GLfloat, GLfloat, GLfloat, GLfloat);
+typedef GLint(APIENTRY* GL_GETUNIFORMLOCATION)(GLuint, const GLchar*);
+typedef void(APIENTRY* GL_GENERATEMIPMAP)(GLenum);
+typedef void(APIENTRY* GL_ACTIVETEXTURE)(GLenum);
+typedef void(APIENTRY* GL_UNIFORM1I)(GLint, GLint);
+typedef void(APIENTRY* GL_UNIFORM1F)(GLint, GLfloat);
+typedef void(APIENTRY* GL_GETUNIFORMFV)(GLuint, GLint, GLfloat*);
 
 GL_GENBUFFERS glGenBuffers = NULL;
 GL_BINDBUFFER glBindBuffer = NULL;
@@ -119,6 +123,7 @@ GL_GENERATEMIPMAP glGenerateMipmap = NULL;
 GL_ACTIVETEXTURE glActiveTexture = NULL;
 GL_UNIFORM1I glUniform1i = NULL;
 GL_UNIFORM1F glUniform1f = NULL;
+GL_GETUNIFORMFV glGetUniformfv = NULL;
 
 // TODO: Fix the prints to match the functions
 void ValidateGLFunctions()
@@ -238,6 +243,11 @@ void ValidateGLFunctions()
     std::cout << "glUniform1f function is null\n";
     exit(1);
   }
+  if (glGetUniformfv == NULL)
+  {
+    std::cout << "glGetUniformfv function is null\n";
+    exit(1);
+  }
 }
 
 void InitializeOpenGlFunctions()
@@ -268,4 +278,5 @@ void InitializeOpenGlFunctions()
   glActiveTexture = (GL_ACTIVETEXTURE)wglGetProcAddress("glActiveTexture");
   glUniform1i = (GL_UNIFORM1I)wglGetProcAddress("glUniform1i");
   glUniform1f = (GL_UNIFORM1F)wglGetProcAddress("glUniform1f");
+  glGetUniformfv = (GL_GETUNIFORMFV)wglGetProcAddress("glGetUniformfv");
 }

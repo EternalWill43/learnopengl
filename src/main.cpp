@@ -15,6 +15,9 @@ const double FRAME_DURATION = 1000.0 / TARGET_FPS;
 static int64_t global_perf_count_frequency;
 constexpr float PI = 3.14159265358979323846f;
 static unsigned int flip_location;
+static float flip = 0.0f;
+static uint8_t rotate = 0;
+static uint8_t r_down = 0;
 
 union Vec3
 {
@@ -53,18 +56,32 @@ inline float Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
   return Result;
 }
 
-void framebuffer_size_callback(GLFWwindow *window, int width, int height)
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
   glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow *window)
+void processInput(GLFWwindow* window)
 {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) glUniform1f(flip_location, 1.0f);
-  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) glUniform1f(flip_location, 0.0f);
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    glfwSetWindowShouldClose(window, true);
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    flip = 1.0f;
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    flip = 0.0f;
+  if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !r_down)
+  {
+    rotate = rotate ? 0 : 1;
+    r_down = 1;
+  }
+  if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE && r_down)
+  {
+    r_down = 0;
+  }
 }
 
 void RotateTriangles(Vec3F2 arr[], size_t count, float angle = 0.05f)
@@ -132,7 +149,7 @@ int main()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  GLFWwindow *window = glfwCreateWindow(800, 800, "Wow Triangle", NULL, NULL);
+  GLFWwindow* window = glfwCreateWindow(800, 800, "Wow Triangle", NULL, NULL);
   if (window == NULL)
   {
     std::cout << "Failed to create GLFW window" << std::endl;
@@ -165,10 +182,10 @@ int main()
   // ------------------------------------------------------------------
   float vertices[] = {
       // positions          // colors           // texture coords
-      0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  // top right
-      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
+      0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 2.0f, 2.0f,  // top right
+      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 2.0f, 0.0f,  // bottom right
       -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,  // bottom left
-      -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f   // top left
+      -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 2.0f   // top left
   };
   unsigned int indices[] = {
       0, 1, 3,  // first triangle
@@ -188,13 +205,13 @@ int main()
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
   // position attribute
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
   // color attribute
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
   // texture coord attribute
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
   glEnableVertexAttribArray(2);
 
   // load and create a texture
@@ -206,8 +223,8 @@ int main()
   glBindTexture(GL_TEXTURE_2D, texture1);
   // set the texture wrapping parameters
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                  GL_REPEAT);  // set texture wrapping to GL_REPEAT (default wrapping method)
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                  GL_CLAMP_TO_EDGE);  // set texture wrapping to GL_REPEAT (default wrapping method)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   // set texture filtering parameters
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -217,7 +234,7 @@ int main()
       true);  // tell stb_image.h to flip loaded texture's on the y-axis.
   // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any
   // IDE/platform; replace it with your own image path.
-  unsigned char *data = stbi_load("./src/container.jpg", &width, &height, &nrChannels, 0);
+  unsigned char* data = stbi_load("./src/container.jpg", &width, &height, &nrChannels, 0);
   if (data)
   {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -262,6 +279,7 @@ int main()
   // or set it via the texture class
   glUniform1i(glGetUniformLocation(shaderProgram, "texture2"), 1);
   flip_location = glGetUniformLocation(shaderProgram, "flip");
+  float flip_value;
 
   // render loop
   // -----------
@@ -270,6 +288,7 @@ int main()
     // input
     // -----
     processInput(window);
+    LARGE_INTEGER start = Win32GetWallClock();
 
     // render
     // ------
@@ -281,16 +300,27 @@ int main()
     glBindTexture(GL_TEXTURE_2D, texture1);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture2);
-
+    glUniform1f(flip_location, flip);
+    // glGetUniformfv(shaderProgram, flip_location, &flip_value);
+    // std::cout << "Flip value is: " << flip_value << "\n";
     // render container
     glUseProgram(shaderProgram);
     glBindVertexArray(VAO);
+    if (rotate)
+      RotateQuad(vertices, sizeof(vertices));
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), &vertices);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // -------------------------------------------------------------------------------
     glfwSwapBuffers(window);
     glfwPollEvents();
+    LARGE_INTEGER end = Win32GetWallClock();
+    float time_elapsed = Win32GetSecondsElapsed(start, end);
+    if (FRAME_DURATION - time_elapsed > 0)
+    {
+      Sleep(static_cast<int>(FRAME_DURATION - time_elapsed));
+    }
   }
 
   // optional: de-allocate all resources once they've outlived their purpose:
