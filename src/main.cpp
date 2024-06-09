@@ -14,6 +14,7 @@ const int TARGET_FPS = 120;
 const double FRAME_DURATION = 1000.0 / TARGET_FPS;
 static int64_t global_perf_count_frequency;
 constexpr float PI = 3.14159265358979323846f;
+static unsigned int flip_location;
 
 union Vec3
 {
@@ -62,6 +63,8 @@ void processInput(GLFWwindow *window)
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) glUniform1f(flip_location, 1.0f);
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) glUniform1f(flip_location, 0.0f);
 }
 
 void RotateTriangles(Vec3F2 arr[], size_t count, float angle = 0.05f)
@@ -144,11 +147,11 @@ int main()
   ValidateGLFunctions();
 
   unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-  glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
+  glShaderSource(vertex_shader, 1, &vert_file, NULL);
   glCompileShader(vertex_shader);
 
   unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
+  glShaderSource(fragment_shader, 1, &frag_file, NULL);
   glCompileShader(fragment_shader);
 
   unsigned int shaderProgram = glCreateProgram();
@@ -159,6 +162,7 @@ int main()
   glDeleteShader(vertex_shader);
   glDeleteShader(fragment_shader);
 
+  // ------------------------------------------------------------------
   float vertices[] = {
       // positions          // colors           // texture coords
       0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  // top right
@@ -193,21 +197,27 @@ int main()
   glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
   glEnableVertexAttribArray(2);
 
-  unsigned int texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  // load and create a texture
+  // -------------------------
+  unsigned int texture1, texture2;
+  // texture 1
+  // ---------
+  glGenTextures(1, &texture1);
+  glBindTexture(GL_TEXTURE_2D, texture1);
+  // set the texture wrapping parameters
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                  GL_REPEAT);  // set texture wrapping to GL_REPEAT (default wrapping method)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  // set texture filtering parameters
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
+  // load image, create texture and generate mipmaps
   int width, height, nrChannels;
-#if RELEASE
-  unsigned char *data = stbi_load("./container.jpg", &width, &height, &nrChannels, 0);
-#else
+  stbi_set_flip_vertically_on_load(
+      true);  // tell stb_image.h to flip loaded texture's on the y-axis.
+  // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any
+  // IDE/platform; replace it with your own image path.
   unsigned char *data = stbi_load("./src/container.jpg", &width, &height, &nrChannels, 0);
-#endif
-
   if (data)
   {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -218,32 +228,79 @@ int main()
     std::cout << "Failed to load texture" << std::endl;
   }
   stbi_image_free(data);
-  glUseProgram(shaderProgram);
+  // texture 2
+  // ---------
+  glGenTextures(1, &texture2);
+  glBindTexture(GL_TEXTURE_2D, texture2);
+  // set the texture wrapping parameters
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                  GL_REPEAT);  // set texture wrapping to GL_REPEAT (default wrapping method)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  // set texture filtering parameters
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // load image, create texture and generate mipmaps
+  data = stbi_load("./src/awesomeface.png", &width, &height, &nrChannels, 0);
+  if (data)
+  {
+    // note that the awesomeface.png has transparency and thus an alpha channel, so make sure to
+    // tell OpenGL the data type is of GL_RGBA
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+  else
+  {
+    std::cout << "Failed to load texture" << std::endl;
+  }
+  stbi_image_free(data);
 
+  // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
+  // -------------------------------------------------------------------------------------------
+  glUseProgram(shaderProgram);
+  // either set it manually like so:
+  glUniform1i(glGetUniformLocation(shaderProgram, "texture1"), 0);
+  // or set it via the texture class
+  glUniform1i(glGetUniformLocation(shaderProgram, "texture2"), 1);
+  flip_location = glGetUniformLocation(shaderProgram, "flip");
+
+  // render loop
+  // -----------
   while (!glfwWindowShouldClose(window))
   {
+    // input
+    // -----
     processInput(window);
 
-    RotateQuad(vertices, sizeof(vertices));
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-
+    // render
+    // ------
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glBindTexture(GL_TEXTURE_2D, texture);
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture2);
 
+    // render container
+    glUseProgram(shaderProgram);
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+    // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+    // -------------------------------------------------------------------------------
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
 
-  glDeleteProgram(shaderProgram);
+  // optional: de-allocate all resources once they've outlived their purpose:
+  // ------------------------------------------------------------------------
   glDeleteVertexArrays(1, &VAO);
   glDeleteBuffers(1, &VBO);
   glDeleteBuffers(1, &EBO);
 
+  // glfw: terminate, clearing all previously allocated GLFW resources.
+  // ------------------------------------------------------------------
   glfwTerminate();
   return 0;
 }

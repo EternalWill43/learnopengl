@@ -3,6 +3,9 @@
 #define GL_VERTEX_SHADER 35633
 #define GL_FRAGMENT_SHADER 0x8B30
 #define GL_ELEMENT_ARRAY_BUFFER 0x8893
+#define GL_TEXTURE0 0x84C0
+#define GL_TEXTURE1 0x84C1
+#define GL_TEXTURE2 0x84C2
 
 char *CStrFromFile(std::string path)
 {
@@ -87,6 +90,9 @@ typedef void(APIENTRY *GL_DELETEPROGRAM)(GLuint);
 typedef void(APIENTRY *GL_UNIFORM4F)(GLint, GLfloat, GLfloat, GLfloat, GLfloat);
 typedef GLint(APIENTRY *GL_GETUNIFORMLOCATION)(GLuint, const GLchar *);
 typedef void(APIENTRY *GL_GENERATEMIPMAP)(GLenum);
+typedef void(APIENTRY *GL_ACTIVETEXTURE)(GLenum);
+typedef void(APIENTRY *GL_UNIFORM1I)(GLint, GLint);
+typedef void(APIENTRY *GL_UNIFORM1F)(GLint, GLfloat);
 
 GL_GENBUFFERS glGenBuffers = NULL;
 GL_BINDBUFFER glBindBuffer = NULL;
@@ -110,6 +116,9 @@ GL_DELETEPROGRAM glDeleteProgram = NULL;
 GL_UNIFORM4F glUniform4f = NULL;
 GL_GETUNIFORMLOCATION glGetUniformLocation = NULL;
 GL_GENERATEMIPMAP glGenerateMipmap = NULL;
+GL_ACTIVETEXTURE glActiveTexture = NULL;
+GL_UNIFORM1I glUniform1i = NULL;
+GL_UNIFORM1F glUniform1f = NULL;
 
 // TODO: Fix the prints to match the functions
 void ValidateGLFunctions()
@@ -214,6 +223,21 @@ void ValidateGLFunctions()
     std::cout << "glBindVertexArray function null\n";
     exit(1);
   }
+  if (glActiveTexture == NULL)
+  {
+    std::cout << "glActiveTexture function is null\n";
+    exit(1);
+  }
+  if (glUniform1i == NULL)
+  {
+    std::cout << "glUniform1i function is null\n";
+    exit(1);
+  }
+  if (glUniform1f == NULL)
+  {
+    std::cout << "glUniform1f function is null\n";
+    exit(1);
+  }
 }
 
 void InitializeOpenGlFunctions()
@@ -241,4 +265,7 @@ void InitializeOpenGlFunctions()
   glUniform4f = (GL_UNIFORM4F)wglGetProcAddress("glUniform4f");
   glGetUniformLocation = (GL_GETUNIFORMLOCATION)wglGetProcAddress("glGetUniformLocation");
   glGenerateMipmap = (GL_GENERATEMIPMAP)wglGetProcAddress("glGenerateMipmap");
+  glActiveTexture = (GL_ACTIVETEXTURE)wglGetProcAddress("glActiveTexture");
+  glUniform1i = (GL_UNIFORM1I)wglGetProcAddress("glUniform1i");
+  glUniform1f = (GL_UNIFORM1F)wglGetProcAddress("glUniform1f");
 }
