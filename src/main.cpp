@@ -13,6 +13,7 @@
 const int TARGET_FPS = 120;
 const double FRAME_DURATION = 1000.0 / TARGET_FPS;
 static int64_t global_perf_count_frequency;
+constexpr float PI = 3.14159265358979323846f;
 
 union Vec3
 {
@@ -21,6 +22,12 @@ union Vec3
     float x;
     float y;
     float z;
+  };
+  struct
+  {
+    float r;
+    float g;
+    float b;
   };
   float v[3];
 };
@@ -79,6 +86,32 @@ void RotateTriangles(Vec3F2 arr[], size_t count, float angle = 0.05f)
     float y = arr[i].y;
     arr[i].x = x * cosTheta - y * sinTheta;
     arr[i].y = x * sinTheta + y * cosTheta;
+  }
+}
+
+void RotateQuad(float arr[], size_t count, float angle = 0.05f)
+{
+  // Convert angle to radians
+  float rad = angle * (PI / 180.0f);
+
+  // Calculate cosine and sine of the angle
+  float cosAngle = cosf(rad);
+  float sinAngle = sinf(rad);
+
+  // Iterate through the array and apply rotation to each vertex
+  for (size_t i = 0; i < count; i += 8)
+  {
+    // Extract the original x and y coordinates
+    float x = arr[i];
+    float y = arr[i + 1];
+
+    // Apply the rotation transformation
+    float newX = x * cosAngle - y * sinAngle;
+    float newY = x * sinAngle + y * cosAngle;
+
+    // Update the array with the new coordinates
+    arr[i] = newX;
+    arr[i + 1] = newY;
   }
 }
 
@@ -169,7 +202,12 @@ int main()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   int width, height, nrChannels;
+#if RELEASE
+  unsigned char *data = stbi_load("./container.jpg", &width, &height, &nrChannels, 0);
+#else
   unsigned char *data = stbi_load("./src/container.jpg", &width, &height, &nrChannels, 0);
+#endif
+
   if (data)
   {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -185,6 +223,9 @@ int main()
   while (!glfwWindowShouldClose(window))
   {
     processInput(window);
+
+    RotateQuad(vertices, sizeof(vertices));
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);

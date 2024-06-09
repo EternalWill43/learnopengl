@@ -21,37 +21,38 @@ char *CStrFromFile(std::string path)
   return buf;
 }
 
-char *frag_file = CStrFromFile("./src/shaders/frag.glsl");
-char *vert_file = CStrFromFile("./src/shaders/vert.glsl");
+const char *frag_file = CStrFromFile("./src/shaders/frag.glsl");
+const char *vert_file = CStrFromFile("./src/shaders/vert.glsl");
 
-const char *fragment_shader_source = frag_file;
-// "#version 330 core\n"
-// "out vec4 FragColor;\n"
-// "in vec3 ourColor;\n"
-// "in vec2 TexCoord;\n"
-// "in vec4 pos;\n"
-// "uniform sampler2D ourTexture;"
-// "void main()\n"
-// "{\n"
-// "  FragColor = texture(ourTexture, TexCoord);\n"
-// "};";
+const char *fragment_shader_source =
+    "#version 330 core\n"
+    "out vec4 FragColor;\n"
+    "  \n"
+    "in vec3 ourColor;\n"
+    "in vec2 TexCoord;\n"
+    "\n"
+    "uniform sampler2D ourTexture;\n"
+    "\n"
+    "void main()\n"
+    "{\n"
+    "    FragColor = texture(ourTexture, TexCoord) * vec4(ourColor, 1.0); \n"
+    "}";
 
-const char *vertex_shader_source = vert_file;
-// "#version 330 core\n"
-// "layout (location = 0) in vec3 aPos;\n"
-// "layout (location = 1) in vec3 aColor;\n"
-// "layout (location = 2) in vec2 aTexCoord\n"
-// "out vec3 ourColor;\n"
-// "out vec4 pos;\n"
-// "out vec2 TexCoord;\n"
-// "uniform float xOffset;\n"
-// "void main()\n"
-// "{\n"
-// "   gl_Position = vec4(aPos.x + xOffset, aPos.y, aPos.z, 1.0);\n"
-// "   ourColor = aColor;\n"
-// "   pos = gl_Position;\n"
-// "   TexCoord = aTexCoord;\n"
-// "};";
+const char *vertex_shader_source =
+    "#version 330 core\n"
+    "layout (location = 0) in vec3 aPos;\n"
+    "layout (location = 1) in vec3 aColor;\n"
+    "layout (location = 2) in vec2 aTexCoord;\n"
+    "\n"
+    "out vec3 ourColor;\n"
+    "out vec2 TexCoord;\n"
+    "\n"
+    "void main()\n"
+    "{\n"
+    "    gl_Position = vec4(aPos, 1.0);\n"
+    "    ourColor = aColor;\n"
+    "    TexCoord = aTexCoord;\n"
+    "}";
 
 // NOTE: Can't statically link the binary if I have to do file i/o
 // char* vertex_source = CStrFromFile("./src/shaders/vert.glsl");
