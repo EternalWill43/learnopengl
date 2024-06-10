@@ -27,8 +27,10 @@ char* CStrFromFile(std::string path)
   return buf;
 }
 
+#ifndef RELEASE
 const char* frag_file = CStrFromFile("./src/shaders/frag.glsl");
 const char* vert_file = CStrFromFile("./src/shaders/vert.glsl");
+#endif
 
 const char* fragment_shader_source =
     "#version 330 core\n"
@@ -37,11 +39,16 @@ const char* fragment_shader_source =
     "in vec3 ourColor;\n"
     "in vec2 TexCoord;\n"
     "\n"
-    "uniform sampler2D ourTexture;\n"
+    "uniform sampler2D texture1;\n"
+    "uniform sampler2D texture2;\n"
+    "uniform float flip;\n"
+    "uniform float opacity;\n"
     "\n"
     "void main()\n"
     "{\n"
-    "    FragColor = texture(ourTexture, TexCoord) * vec4(ourColor, 1.0); \n"
+    "    vec2 coord = vec2((flip != 0.0 ? 1.0f - TexCoord.x : TexCoord.x), TexCoord.y);\n"
+    "    FragColor = mix(texture(texture1, TexCoord), texture(texture2, coord), opacity);\n"
+    "   // FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.2);\n"
     "}";
 
 const char* vertex_shader_source =
@@ -52,12 +59,13 @@ const char* vertex_shader_source =
     "\n"
     "out vec3 ourColor;\n"
     "out vec2 TexCoord;\n"
+    "uniform mat4 transform;\n"
     "\n"
     "void main()\n"
     "{\n"
-    "    gl_Position = vec4(aPos, 1.0);\n"
+    "    gl_Position = transform * vec4(aPos, 1.0);\n"
     "    ourColor = aColor;\n"
-    "    TexCoord = aTexCoord;\n"
+    "    TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
     "}";
 
 // NOTE: Can't statically link the binary if I have to do file i/o
@@ -81,8 +89,8 @@ typedef void(APIENTRY* GL_ATTACHSHADER)(GLuint, GLuint);
 typedef void(APIENTRY* GL_LINKPROGRAM)(GLuint);
 typedef void(APIENTRY* GL_USEPROGRAM)(GLuint);
 typedef void(APIENTRY* GL_DELETESHADER)(GLuint);
-typedef void(
-    APIENTRY* GL_VERTEXATTRIBPOINTER)(GLuint, GLint, GLenum, GLboolean, GLsizei, const void*);
+typedef void(APIENTRY* GL_VERTEXATTRIBPOINTER)(GLuint, GLint, GLenum, GLboolean, GLsizei,
+                                               const void*);
 typedef void(APIENTRY* GL_ENABLEVERTEXATTRIBARRAY)(GLuint);
 typedef void(APIENTRY* GL_GENVERTEXARRAYS)(GLsizei, GLuint*);
 typedef void(APIENTRY* GL_BINDVERTEXARRAY)(GLuint);
@@ -97,6 +105,7 @@ typedef void(APIENTRY* GL_ACTIVETEXTURE)(GLenum);
 typedef void(APIENTRY* GL_UNIFORM1I)(GLint, GLint);
 typedef void(APIENTRY* GL_UNIFORM1F)(GLint, GLfloat);
 typedef void(APIENTRY* GL_GETUNIFORMFV)(GLuint, GLint, GLfloat*);
+typedef void(APIENTRY* GL_UNIFORMMATRIX4FV)(GLint, GLsizei, GLboolean, const GLfloat*);
 
 GL_GENBUFFERS glGenBuffers = NULL;
 GL_BINDBUFFER glBindBuffer = NULL;
@@ -124,6 +133,7 @@ GL_ACTIVETEXTURE glActiveTexture = NULL;
 GL_UNIFORM1I glUniform1i = NULL;
 GL_UNIFORM1F glUniform1f = NULL;
 GL_GETUNIFORMFV glGetUniformfv = NULL;
+GL_UNIFORMMATRIX4FV glUniformMatrix4fv = NULL;
 
 // TODO: Fix the prints to match the functions
 void ValidateGLFunctions()
@@ -248,6 +258,10 @@ void ValidateGLFunctions()
     std::cout << "glGetUniformfv function is null\n";
     exit(1);
   }
+  if (glUniformMatrix4fv == NULL)
+  {
+    std::cout << "glUniformMatrix4fv function is null\n";
+  }
 }
 
 void InitializeOpenGlFunctions()
@@ -279,4 +293,5 @@ void InitializeOpenGlFunctions()
   glUniform1i = (GL_UNIFORM1I)wglGetProcAddress("glUniform1i");
   glUniform1f = (GL_UNIFORM1F)wglGetProcAddress("glUniform1f");
   glGetUniformfv = (GL_GETUNIFORMFV)wglGetProcAddress("glGetUniformfv");
+  glUniformMatrix4fv = (GL_UNIFORMMATRIX4FV)wglGetProcAddress("glUniformMatrix4fv");
 }

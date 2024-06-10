@@ -6,7 +6,11 @@
 #include <stb_image.h>
 
 #include <fstream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <random>
 
 #include "ogl.cpp"
 
@@ -16,10 +20,25 @@ static int64_t global_perf_count_frequency;
 constexpr float PI = 3.14159265358979323846f;
 static unsigned int flip_location;
 static float flip = 0.0f;
-static uint8_t rotate = 0;
-static uint8_t r_down = 0;
+static float reset = 0;
 static float opacity = 0.2f;
 static float angle = 0.15f;
+static float z_rotate = 1.0;
+static float x_rotate = 1.0;
+static float y_rotate = 1.0;
+static uint8_t r_down = 0;
+static uint8_t x_down = 0;
+static uint8_t z_down = 0;
+static uint8_t y_down = 0;
+static float rotation_speed = 2.0f;
+
+#if RELEASE
+const char* container_path = "./container.jpg";
+const char* awesome_path = "./awesomeface.png";
+#else
+const char* container_path = "./src/container.jpg";
+const char* awesome_path = "./src/awesomeface.png";
+#endif
 
 union Vec3
 {
@@ -44,6 +63,16 @@ struct Vec3F2
   float y;
   float z = 0.0f;
 };
+
+double RandomDouble(float min, float max)
+{
+  // Set up random number generation
+  std::random_device rd;                           // Seed source
+  std::mt19937 gen(rd());                          // Mersenne Twister engine
+  std::uniform_real_distribution<> dis(min, max);  // Uniform distribution between min and max
+
+  return dis(gen);  // Generate and return the random float
+}
 
 inline LARGE_INTEGER Win32GetWallClock()
 {
@@ -77,6 +106,19 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
   }
 }
 
+void handleKeyToggle(GLFWwindow* window, int key, float* toggle, uint8_t* keyState)
+{
+  if (glfwGetKey(window, key) == GLFW_PRESS && !(*keyState))
+  {
+    *toggle = *toggle ? 0 : 1;
+    *keyState = 1;
+  }
+  if (glfwGetKey(window, key) == GLFW_RELEASE && *keyState)
+  {
+    *keyState = 0;
+  }
+}
+
 void processInput(GLFWwindow* window)
 {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
@@ -86,21 +128,16 @@ void processInput(GLFWwindow* window)
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) flip = 0.0f;
   if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
   {
-    angle += 0.05f;
+    rotation_speed += 0.05f;
   }
   if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
   {
-    angle -= 0.05f;
+    rotation_speed -= 0.05f;
   }
-  if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !r_down)
-  {
-    rotate = rotate ? 0 : 1;
-    r_down = 1;
-  }
-  if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE && r_down)
-  {
-    r_down = 0;
-  }
+  handleKeyToggle(window, GLFW_KEY_X, &x_rotate, &x_down);
+  handleKeyToggle(window, GLFW_KEY_Y, &y_rotate, &y_down);
+  handleKeyToggle(window, GLFW_KEY_Z, &z_rotate, &z_down);
+  handleKeyToggle(window, GLFW_KEY_R, &reset, &r_down);
 }
 
 void RotateTriangles(Vec3F2 arr[], size_t count)
@@ -114,32 +151,6 @@ void RotateTriangles(Vec3F2 arr[], size_t count)
     float y = arr[i].y;
     arr[i].x = x * cosTheta - y * sinTheta;
     arr[i].y = x * sinTheta + y * cosTheta;
-  }
-}
-
-void RotateQuad(float arr[], size_t count)
-{
-  // Convert angle to radians
-  float rad = angle * (PI / 180.0f);
-
-  // Calculate cosine and sine of the angle
-  float cosAngle = cosf(rad);
-  float sinAngle = sinf(rad);
-
-  // Iterate through the array and apply rotation to each vertex
-  for (size_t i = 0; i < count; i += 8)
-  {
-    // Extract the original x and y coordinates
-    float x = arr[i];
-    float y = arr[i + 1];
-
-    // Apply the rotation transformation
-    float newX = x * cosAngle - y * sinAngle;
-    float newY = x * sinAngle + y * cosAngle;
-
-    // Update the array with the new coordinates
-    arr[i] = newX;
-    arr[i + 1] = newY;
   }
 }
 
@@ -173,11 +184,19 @@ int main()
   ValidateGLFunctions();
 
   unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+#if RELEASE
+  glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
+#else
   glShaderSource(vertex_shader, 1, &vert_file, NULL);
+#endif
   glCompileShader(vertex_shader);
 
   unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+#if RELEASE
+  glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
+#else
   glShaderSource(fragment_shader, 1, &frag_file, NULL);
+#endif
   glCompileShader(fragment_shader);
 
   unsigned int shaderProgram = glCreateProgram();
@@ -200,6 +219,11 @@ int main()
       0, 1, 3,  // first triangle
       1, 2, 3   // second triangle
   };
+
+  glm::mat4 trans = glm::mat4(1.0f);
+  trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 0.5));
+  // trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+
   unsigned int VBO, VAO, EBO;
   glGenVertexArrays(1, &VAO);
   glGenBuffers(1, &VBO);
@@ -232,18 +256,18 @@ int main()
   glBindTexture(GL_TEXTURE_2D, texture1);
   // set the texture wrapping parameters
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                  GL_CLAMP_TO_EDGE);  // set texture wrapping to GL_REPEAT (default wrapping method)
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                  GL_REPEAT);  // set texture wrapping to GL_REPEAT (default wrapping method)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   // set texture filtering parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   // load image, create texture and generate mipmaps
   int width, height, nrChannels;
   stbi_set_flip_vertically_on_load(
       true);  // tell stb_image.h to flip loaded texture's on the y-axis.
   // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any
   // IDE/platform; replace it with your own image path.
-  unsigned char* data = stbi_load("./src/container.jpg", &width, &height, &nrChannels, 0);
+  unsigned char* data = stbi_load(container_path, &width, &height, &nrChannels, 0);
   if (data)
   {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -266,7 +290,7 @@ int main()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   // load image, create texture and generate mipmaps
-  data = stbi_load("./src/awesomeface.png", &width, &height, &nrChannels, 0);
+  data = stbi_load(awesome_path, &width, &height, &nrChannels, 0);
   if (data)
   {
     // note that the awesomeface.png has transparency and thus an alpha channel, so make sure to
@@ -290,41 +314,59 @@ int main()
   flip_location = glGetUniformLocation(shaderProgram, "flip");
   float flip_value;
   int opacity_location = glGetUniformLocation(shaderProgram, "opacity");
+  unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
+  glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 
   // render loop
   // -----------
   while (!glfwWindowShouldClose(window))
   {
-    // input
-    // -----
+    // Input processing
     processInput(window);
     LARGE_INTEGER start = Win32GetWallClock();
 
-    // render
-    // ------
+    // Clear the screen
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // bind textures on corresponding texture units
+    // Check if reset is triggered and reset the transformation matrix
+    if (reset)
+    {
+      trans = glm::mat4(1.0f);  // Reset the transformation matrix to identity
+      reset = 0;                // Reset the flag
+    }
+
+    // Apply rotation if any of the rotation flags are set
+    if (x_rotate || y_rotate || z_rotate)
+    {
+      trans =
+          glm::rotate(trans, glm::radians(rotation_speed), glm::vec3(x_rotate, y_rotate, z_rotate));
+    }
+
+    // Send the transformation matrix to the vertex shader
+    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+
+    // Bind textures to texture units
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture1);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture2);
+
+    // Set other uniform variables
     glUniform1f(flip_location, flip);
     glUniform1f(opacity_location, opacity);
-    // glGetUniformfv(shaderProgram, flip_location, &flip_value);
-    // std::cout << "Flip value is: " << flip_value << "\n";
-    // render container
+
+    // Use the shader program and bind the VAO
     glUseProgram(shaderProgram);
     glBindVertexArray(VAO);
-    if (rotate) RotateQuad(vertices, sizeof(vertices));
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), &vertices);
+
+    // Draw the elements
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-    // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-    // -------------------------------------------------------------------------------
+    // Swap buffers and poll IO events
     glfwSwapBuffers(window);
     glfwPollEvents();
+
     LARGE_INTEGER end = Win32GetWallClock();
     float time_elapsed = Win32GetSecondsElapsed(start, end);
     if (FRAME_DURATION - time_elapsed > 0)
