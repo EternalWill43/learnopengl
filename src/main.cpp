@@ -68,29 +68,22 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
   if (yoffset > 0.0f)
   {
     opacity += 0.1f;
-    if (opacity > 1.0f)
-      opacity = 1.0f;
+    if (opacity > 1.0f) opacity = 1.0f;
   }
   else
   {
     opacity -= 0.1f;
-    if (opacity < 0.0f)
-      opacity = 0.0f;
+    if (opacity < 0.0f) opacity = 0.0f;
   }
 }
 
 void processInput(GLFWwindow* window)
 {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    glfwSetWindowShouldClose(window, true);
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    flip = 1.0f;
-  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    flip = 0.0f;
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) flip = 1.0f;
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) flip = 0.0f;
   if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
   {
     angle += 0.05f;
@@ -98,10 +91,6 @@ void processInput(GLFWwindow* window)
   if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
   {
     angle -= 0.05f;
-    if (angle < 0.0f)
-    {
-      angle = 0.0f;
-    }
   }
   if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !r_down)
   {
@@ -119,17 +108,8 @@ void RotateTriangles(Vec3F2 arr[], size_t count)
   for (size_t i = 0; i < count; i += 2)
   {
     float cosTheta, sinTheta;
-    if (i % 66969 == 0)
-    {
-      cosTheta = cos(angle);
-      sinTheta = sin(angle);
-    }
-    else
-    {
-      cosTheta = cos(-angle);
-      sinTheta = sin(-angle);
-    }
-
+    cosTheta = cos(angle);
+    sinTheta = sin(angle);
     float x = arr[i].x;
     float y = arr[i].y;
     arr[i].x = x * cosTheta - y * sinTheta;
@@ -137,7 +117,7 @@ void RotateTriangles(Vec3F2 arr[], size_t count)
   }
 }
 
-void RotateQuad(float arr[], size_t count, float angle = 0.05f)
+void RotateQuad(float arr[], size_t count)
 {
   // Convert angle to radians
   float rad = angle * (PI / 180.0f);
@@ -337,8 +317,7 @@ int main()
     // render container
     glUseProgram(shaderProgram);
     glBindVertexArray(VAO);
-    if (rotate)
-      RotateQuad(vertices, sizeof(vertices));
+    if (rotate) RotateQuad(vertices, sizeof(vertices));
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), &vertices);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
