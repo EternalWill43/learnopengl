@@ -135,7 +135,6 @@ GL_UNIFORM1F glUniform1f = NULL;
 GL_GETUNIFORMFV glGetUniformfv = NULL;
 GL_UNIFORMMATRIX4FV glUniformMatrix4fv = NULL;
 
-// TODO: Fix the prints to match the functions
 void ValidateGLFunctions()
 {
   if (glGenBuffers == NULL)
@@ -213,29 +212,37 @@ void ValidateGLFunctions()
     std::cout << "glBindVertexArray function null\n";
     exit(1);
   }
+  if (glBufferSubData == NULL)
+  {
+    std::cout << "glBufferSubData function null\n";
+  }
+  if (glDeleteVertexArrays == NULL)
+  {
+    std::cout << "glDeleteVertexArrays function null\n";
+  }
   if (glDeleteBuffers == NULL)
   {
-    std::cout << "glBindVertexArray function null\n";
+    std::cout << "glDeleteBuffers function null\n";
     exit(1);
   }
   if (glDeleteProgram == NULL)
   {
-    std::cout << "glBindVertexArray function null\n";
+    std::cout << "glDeleteProgram function null\n";
     exit(1);
   }
   if (glUniform4f == NULL)
   {
-    std::cout << "glBindVertexArray function null\n";
+    std::cout << "glUniform4f function null\n";
     exit(1);
   }
   if (glGetUniformLocation == NULL)
   {
-    std::cout << "glBindVertexArray function null\n";
+    std::cout << "glGetUniformLocation function null\n";
     exit(1);
   }
   if (glGenerateMipmap == NULL)
   {
-    std::cout << "glBindVertexArray function null\n";
+    std::cout << "glGenerateMipmap function null\n";
     exit(1);
   }
   if (glActiveTexture == NULL)
