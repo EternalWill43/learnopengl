@@ -97,12 +97,14 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
   if (yoffset > 0.0f)
   {
     opacity += 0.1f;
-    if (opacity > 1.0f) opacity = 1.0f;
+    if (opacity > 1.0f)
+      opacity = 1.0f;
   }
   else
   {
     opacity -= 0.1f;
-    if (opacity < 0.0f) opacity = 0.0f;
+    if (opacity < 0.0f)
+      opacity = 0.0f;
   }
 }
 
@@ -121,18 +123,23 @@ void handleKeyToggle(GLFWwindow* window, int key, float* toggle, uint8_t* keySta
 
 void processInput(GLFWwindow* window)
 {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) flip = 1.0f;
-  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) flip = 0.0f;
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    glfwSetWindowShouldClose(window, true);
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    flip = 1.0f;
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    flip = 0.0f;
   if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
   {
-    rotation_speed += 0.05f;
+    rotation_speed -= 0.05f;
   }
   if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
   {
-    rotation_speed -= 0.05f;
+    rotation_speed += 0.05f;
   }
   handleKeyToggle(window, GLFW_KEY_X, &x_rotate, &x_down);
   handleKeyToggle(window, GLFW_KEY_Y, &y_rotate, &y_down);
@@ -316,9 +323,9 @@ int main()
   int opacity_location = glGetUniformLocation(shaderProgram, "opacity");
   unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
   glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
-
   // render loop
   // -----------
+  int once = 1;
   while (!glfwWindowShouldClose(window))
   {
     // Input processing
@@ -342,6 +349,7 @@ int main()
       trans =
           glm::rotate(trans, glm::radians(rotation_speed), glm::vec3(x_rotate, y_rotate, z_rotate));
     }
+    // trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
 
     // Send the transformation matrix to the vertex shader
     glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
@@ -361,6 +369,15 @@ int main()
     glBindVertexArray(VAO);
 
     // Draw the elements
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glm::mat4 second = glm::mat4(1.0f);
+    float deltaTime = sin((float)glfwGetTime());
+    second = glm::rotate(second, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+    second = glm::translate(second, glm::vec3(-0.5f, 0.5f, 0.0f));
+    second = glm::rotate(second, (float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
+    second = glm::scale(second, glm::vec3(deltaTime, deltaTime, deltaTime));
+    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(second));
+
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     // Swap buffers and poll IO events
