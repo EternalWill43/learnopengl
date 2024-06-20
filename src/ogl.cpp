@@ -89,8 +89,8 @@ typedef void(APIENTRY* GL_ATTACHSHADER)(GLuint, GLuint);
 typedef void(APIENTRY* GL_LINKPROGRAM)(GLuint);
 typedef void(APIENTRY* GL_USEPROGRAM)(GLuint);
 typedef void(APIENTRY* GL_DELETESHADER)(GLuint);
-typedef void(APIENTRY* GL_VERTEXATTRIBPOINTER)(GLuint, GLint, GLenum, GLboolean, GLsizei,
-                                               const void*);
+typedef void(
+    APIENTRY* GL_VERTEXATTRIBPOINTER)(GLuint, GLint, GLenum, GLboolean, GLsizei, const void*);
 typedef void(APIENTRY* GL_ENABLEVERTEXATTRIBARRAY)(GLuint);
 typedef void(APIENTRY* GL_GENVERTEXARRAYS)(GLsizei, GLuint*);
 typedef void(APIENTRY* GL_BINDVERTEXARRAY)(GLuint);
@@ -301,4 +301,9 @@ void InitializeOpenGlFunctions()
   glUniform1f = (GL_UNIFORM1F)wglGetProcAddress("glUniform1f");
   glGetUniformfv = (GL_GETUNIFORMFV)wglGetProcAddress("glGetUniformfv");
   glUniformMatrix4fv = (GL_UNIFORMMATRIX4FV)wglGetProcAddress("glUniformMatrix4fv");
+}
+
+void SetMat4(unsigned int shaderProgram, char* name, float* mat)
+{
+  glUniformMatrix4fv(glGetUniformLocation(shaderProgram, name), 1, GL_FALSE, mat);
 }
