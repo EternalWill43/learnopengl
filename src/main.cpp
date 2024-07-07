@@ -45,6 +45,12 @@ glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+bool firstMouse = true;
+float yaw   = -90.0f;
+float pitch =  0.0f;
+float lastX =  800.0f / 2.0;
+float lastY =  600.0 / 2.0;
+float fov   =  45.0f;
 
 #if RELEASE
 const char* container_path = "./container.jpg";
@@ -80,12 +86,11 @@ struct Vec3F2
 
 double RandomDouble(float min, float max)
 {
-  // Set up random number generation
-  std::random_device rd;                           // Seed source
-  std::mt19937 gen(rd());                          // Mersenne Twister engine
-  std::uniform_real_distribution<> dis(min, max);  // Uniform distribution between min and max
+  std::random_device rd;                          
+  std::mt19937 gen(rd());                         
+  std::uniform_real_distribution<> dis(min, max); 
 
-  return dis(gen);  // Generate and return the random float
+  return dis(gen);
 }
 
 inline LARGE_INTEGER Win32GetWallClock()
@@ -108,19 +113,45 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-  if (yoffset > 0.0f)
-  {
-    opacity += 0.1f;
-    if (opacity > 1.0f)
-      opacity = 1.0f;
-  }
-  else
-  {
-    opacity -= 0.1f;
-    if (opacity < 0.0f)
-      opacity = 0.0f;
-  }
+    fov -= (float)yoffset;
+    if (fov < 1.0f)
+        fov = 1.0f;
+    if (fov > 45.0f)
+        fov = 45.0f; 
 }
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+  
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; 
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw   += xoffset;
+    pitch += yoffset;
+
+    if(pitch > 89.0f)
+        pitch = 89.0f;
+    if(pitch < -89.0f)
+        pitch = -89.0f;
+
+    glm::vec3 direction;
+    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.y = sin(glm::radians(pitch));
+    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(direction);
+} 
 
 void handleKeyToggle(GLFWwindow* window, int key, float* toggle, uint8_t* keyState)
 {
@@ -191,7 +222,9 @@ int main()
   glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetScrollCallback(window, scroll_callback);
+  glfwSetCursorPosCallback(window, mouse_callback);
   glfwMakeContextCurrent(window);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
   InitializeOpenGlFunctions();
   ValidateGLFunctions();
@@ -254,27 +287,19 @@ int main()
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-  // position attribute
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
-  // texture coord attribute
   glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
-  // load and create a texture
-  // -------------------------
   unsigned int texture1, texture2;
-  // texture 1
-  // ---------
+
   glGenTextures(1, &texture1);
   glBindTexture(GL_TEXTURE_2D, texture1);
-  // set the texture wrapping parameters
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  // set texture filtering parameters
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  // load image, create texture and generate mipmaps
   int width, height, nrChannels;
   stbi_set_flip_vertically_on_load(true);
   unsigned char* data = stbi_load(container_path, &width, &height, &nrChannels, 0);
@@ -288,22 +313,16 @@ int main()
     std::cout << "Failed to load texture" << std::endl;
   }
   stbi_image_free(data);
-  // texture 2
-  // ---------
+
   glGenTextures(1, &texture2);
   glBindTexture(GL_TEXTURE_2D, texture2);
-  // set the texture wrapping parameters
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  // set texture filtering parameters
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  // load image, create texture and generate mipmaps
   data = stbi_load(awesome_path, &width, &height, &nrChannels, 0);
   if (data)
   {
-    // note that the awesomeface.png has transparency and thus an alpha channel, so make sure to
-    // tell OpenGL the data type is of GL_RGBA
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
   }
@@ -313,12 +332,8 @@ int main()
   }
   stbi_image_free(data);
 
-  // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
-  // -------------------------------------------------------------------------------------------
   glUseProgram(shaderProgram);
-  // either set it manually like so:
   glUniform1i(glGetUniformLocation(shaderProgram, "texture1"), 0);
-  // or set it via the texture class
   glUniform1i(glGetUniformLocation(shaderProgram, "texture2"), 1);
 
   glm::vec3 cubePositions[] = {glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
@@ -338,30 +353,21 @@ int main()
   while (!glfwWindowShouldClose(window))
   {
     LARGE_INTEGER start = Win32GetWallClock();
-    // input
-    // -----
     processInput(window);
 
-    // render
-    // ------
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // also clear the depth buffer now!
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // bind textures on corresponding texture units
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture1);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture2);
 
-    // activate shader
     glUseProgram(shaderProgram);
-
-    // create transformations
 
     glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     SetMat4(shaderProgram, "view", &view[0][0]);
 
-    // render box
     glBindVertexArray(VAO);
     for (unsigned int i = 0; i < 10; i++)
     {
@@ -376,8 +382,6 @@ int main()
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 
-    // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-    // -------------------------------------------------------------------------------
     glfwSwapBuffers(window);
     glfwPollEvents();
 
@@ -389,13 +393,9 @@ int main()
     }
   }
 
-  // optional: de-allocate all resources once they've outlived their purpose:
-  // ------------------------------------------------------------------------
   glDeleteVertexArrays(1, &VAO);
   glDeleteBuffers(1, &VBO);
 
-  // glfw: terminate, clearing all previously allocated GLFW resources.
-  // ------------------------------------------------------------------
   glfwTerminate();
   return 0;
 }
